@@ -1,0 +1,59 @@
+name: Publish Packages
+  
+on: [push, pull_request]
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    
+    outputs:
+      commit-branch: ${{ env.BRANCH }}
+      commit-files: ${{ steps.files.outputs.all }}
+          
+    steps:
+    - id: files
+      name: Get Changed Files
+      uses: jitterbit/get-changed-files@v1
+      with:
+        format: 'csv'
+      
+    - name: Checkout
+      uses: actions/checkout@v2
+    
+    - id: branch
+      name: Parse Branch
+      run: |
+        FULL_BRANCH_PATH="${{ github.ref }}"
+        echo "BRANCH=${FULL_BRANCH_PATH/refs\/heads\//}" >> $GITHUB_ENV
+        
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 6.0.x
+        include-prerelease: true
+    
+    - name: Install dependencies
+      run: dotnet restore
+    
+    - name: Build
+      run: dotnet build --configuration Release /p:Branch=$BRANCH
+    
+    - name: Publish Patterns.Domain.Configuration
+      uses: matthewhancock/actions-patterns-publish-project@v.3
+      continue-on-error: true
+      with:
+        project: Patterns.Domain.Configuration
+        path-project: Patterns.Domain.Configuration
+        nuget-apikey: ${{ secrets.NUGET }}
+        env-commit-branch: ${{ env.BRANCH }}
+        env-commit-files: ${{ steps.files.outputs.all }}
+    
+    - name: Publish Patterns.Domain.Abstractions
+      uses: matthewhancock/actions-patterns-publish-project@v.3
+      continue-on-error: true
+      with:
+        project: Patterns.Domain.Abstractions
+        path-project: Patterns.Domain.Abstractions
+        nuget-apikey: ${{ secrets.NUGET }}
+        env-commit-branch: ${{ env.BRANCH }}
+        env-commit-files: ${{ steps.files.outputs.all }}
