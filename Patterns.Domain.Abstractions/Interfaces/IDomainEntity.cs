@@ -1,4 +1,4 @@
 ﻿namespace Patterns.Domain.Interfaces {
-    interface IDomainEntity {
+    public interface IDomainEntity {
     }
 }
